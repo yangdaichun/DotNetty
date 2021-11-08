@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace DotNetty.Transport.Channels.Sockets
@@ -254,6 +254,11 @@ namespace DotNetty.Transport.Channels.Sockets
                 try
                 {
                     this.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, value ? 1 : 0);
+                    if (value)
+                    {
+                        var controlCode = SetKeepAlive(KeepAlive, 2000, 1000);
+                        this.Socket.IOControl(IOControlCode.KeepAliveValues, controlCode, null);
+                    }
                 }
                 catch (ObjectDisposedException ex)
                 {
@@ -332,6 +337,18 @@ namespace DotNetty.Transport.Channels.Sockets
                     throw new ChannelException(ex);
                 }
             }
+        }
+
+        private byte[] SetKeepAlive(bool isUseKeepAlive, int keepalivetime, int keepaliveinterval)
+        {
+            var OptionValues = new byte[12];
+            //是否启用Keep-Alive
+            BitConverter.GetBytes(isUseKeepAlive).CopyTo(OptionValues, 0);
+            //多长时间开始第一次探测
+            BitConverter.GetBytes(keepalivetime).CopyTo(OptionValues, 4);
+            //探测时间间隔
+            BitConverter.GetBytes(keepaliveinterval).CopyTo(OptionValues, 8);
+            return OptionValues;
         }
     }
 }
